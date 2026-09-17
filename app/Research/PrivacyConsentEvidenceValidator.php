@@ -46,7 +46,7 @@ final class PrivacyConsentEvidenceValidator
         if ($metrics['ga4_server_dispatch_count'] !== 0 || $metrics['meta_participation_count'] !== 0) $problems[] = 'server or Meta participation is present';
         if ($metrics['unmatched_ga4_request_count'] !== 0 || $metrics['ga4_controlled_block_count'] !== 0) $problems[] = 'unexpected GA4 network evidence is present';
         if ($expect && ($run->privacy_mode !== $expect['privacy'] || $run->consent_mode !== $expect['consent'] || $metrics['javascript_enabled'] !== $expect['javascript'])) $problems[] = 'stored condition mapping differs';
-        if ($expect && ($m['consent_profile'] ?? null) !== Ga4ConsentProfile::for($expect['consent'])) $problems[] = 'stored consent profile differs';
+        if ($expect && ! $this->sameConsentProfile($m['consent_profile'] ?? null, Ga4ConsentProfile::for($expect['consent']))) $problems[] = 'stored consent profile differs';
         if (($m['observation_window_ms'] ?? null) !== 10000 || ($m['service_workers'] ?? null) !== 'block' || ($m['routing_enabled'] ?? null) !== true) $problems[] = 'fixed browser settings differ';
 
         if (($m['condition_label'] ?? null) === 'E' && ($metrics['ga4_js_invocation_count'] !== 4 || $metrics['ga4_loader_finished_count'] < 1 || $metrics['ga4_network_correlated_event_count'] !== 4)) $problems[] = 'E delivery manipulation evidence differs';
@@ -56,5 +56,19 @@ final class PrivacyConsentEvidenceValidator
         if (($m['condition_label'] ?? null) === 'H' && ($metrics['ga4_js_invocation_count'] !== 0 || $metrics['ga4_loader_finished_count'] !== 0 || $metrics['ga4_network_correlated_event_count'] !== 0)) $problems[] = 'H denied-consent evidence differs';
 
         return ['valid' => $problems === [], 'problems' => $problems, 'metrics' => $metrics];
+    }
+
+    /**
+     * JSON object member order is not semantic. Sorting both copies retains
+     * strict checks for array type, the complete key set, and string values.
+     */
+    private function sameConsentProfile(mixed $actual, array $expected): bool
+    {
+        if (! is_array($actual)) return false;
+
+        ksort($actual, SORT_STRING);
+        ksort($expected, SORT_STRING);
+
+        return $actual === $expected;
     }
 }

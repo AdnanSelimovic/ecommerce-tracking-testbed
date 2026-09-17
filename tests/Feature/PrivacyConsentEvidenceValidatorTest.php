@@ -34,9 +34,25 @@ class PrivacyConsentEvidenceValidatorTest extends TestCase
         $this->assertFalse(app(PrivacyConsentEvidenceValidator::class)->validate($run->fresh())['valid']);
     }
 
-    private function completedRun(string $label, string $privacy, string $consent, bool $js): ExperimentRun
+    public function test_consent_profile_comparison_ignores_key_order_but_rejects_wrong_missing_and_extra_values(): void
     {
-        return ExperimentRun::create(['tracking_mode'=>'client_only', 'blocking_mode'=>'none', 'privacy_mode'=>$privacy, 'consent_mode'=>$consent, 'status'=>'completed', 'metadata'=>['condition_label'=>$label, 'javascript_enabled'=>$js, 'consent_profile'=>Ga4ConsentProfile::for($consent), 'observation_window_ms'=>10000, 'service_workers'=>'block', 'routing_enabled'=>true]]);
+        $profile = ['ad_storage'=>'denied', 'ad_user_data'=>'denied', 'analytics_storage'=>'granted', 'ad_personalization'=>'denied'];
+        $run = $this->completedRun('G', 'standard', 'partial', true, $profile);
+        foreach ($this->events($run) as $event) BrowserTrackingObservation::create($this->observation($run, $event, 'js_invocation', 'event_transport'));
+        BrowserTrackingObservation::create($this->observation($run, null, 'network', 'script', 'finished'));
+        $this->assertTrue(app(PrivacyConsentEvidenceValidator::class)->validate($run->fresh())['valid']);
+
+        foreach ([['analytics_storage'=>'denied', 'ad_storage'=>'denied', 'ad_user_data'=>'denied', 'ad_personalization'=>'denied'], ['analytics_storage'=>'granted', 'ad_storage'=>'denied', 'ad_user_data'=>'denied'], ['analytics_storage'=>'granted', 'ad_storage'=>'denied', 'ad_user_data'=>'denied', 'ad_personalization'=>'denied', 'unexpected'=>'denied']] as $invalid) {
+            $candidate = $this->completedRun('G', 'standard', 'partial', true, $invalid);
+            foreach ($this->events($candidate) as $event) BrowserTrackingObservation::create($this->observation($candidate, $event, 'js_invocation', 'event_transport'));
+            BrowserTrackingObservation::create($this->observation($candidate, null, 'network', 'script', 'finished'));
+            $this->assertFalse(app(PrivacyConsentEvidenceValidator::class)->validate($candidate->fresh())['valid']);
+        }
+    }
+
+    private function completedRun(string $label, string $privacy, string $consent, bool $js, ?array $profile = null): ExperimentRun
+    {
+        return ExperimentRun::create(['tracking_mode'=>'client_only', 'blocking_mode'=>'none', 'privacy_mode'=>$privacy, 'consent_mode'=>$consent, 'status'=>'completed', 'metadata'=>['condition_label'=>$label, 'javascript_enabled'=>$js, 'consent_profile'=>$profile ?? Ga4ConsentProfile::for($consent), 'observation_window_ms'=>10000, 'service_workers'=>'block', 'routing_enabled'=>true]]);
     }
     /** @return list<GroundTruthEvent> */ private function events(ExperimentRun $run): array { return array_map(fn ($name) => GroundTruthEvent::create(['experiment_run_id'=>$run->id, 'event_name'=>$name]), GroundTruthEventName::cases()); }
     private function observation(ExperimentRun $run, ?GroundTruthEvent $event, string $layer = 'network', string $kind = 'event_transport', string $outcome = 'finished'): array { return ['experiment_run_id'=>$run->id, 'ground_truth_event_id'=>$event?->id, 'provider'=>'ga4', 'layer'=>$layer, 'resource_kind'=>$kind, 'outcome'=>$outcome, 'observed_at'=>now()]; }
