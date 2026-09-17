@@ -16,7 +16,7 @@ export class LaravelControl {
     async createRun(attributes) { return this.post('/research/automation/runs', attributes, 201).then((body) => body.run); }
     async getRun(runId) { return this.get(`/research/automation/runs/${runId}`).then((body) => body.run); }
     async events(runId) { return this.get(`/research/automation/runs/${runId}/events`).then((body) => body.events); }
-    async ingest(runId, observations) { return this.post(`/research/automation/runs/${runId}/observations`, { observations }); }
+    async ingest(runId, observations) { return this.post(`/research/automation/runs/${runId}/observations`, { observations }, 201); }
     async complete(runId) { return this.post(`/research/automation/runs/${runId}/complete`, {}).then((body) => body.run); }
     async fail(runId, reason) { return this.post(`/research/automation/runs/${runId}/fail`, { reason }).then((body) => body.run); }
 

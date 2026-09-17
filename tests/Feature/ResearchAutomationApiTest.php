@@ -80,6 +80,17 @@ class ResearchAutomationApiTest extends TestCase
             ->assertUnprocessable();
     }
 
+    public function test_an_explicit_empty_observation_list_is_a_successful_ingestion(): void
+    {
+        $run = ExperimentRun::create();
+
+        $this->postJson(route('research.automation.runs.observations', $run), ['observations' => []])
+            ->assertCreated()
+            ->assertJsonPath('inserted', 0);
+
+        $this->assertSame(0, BrowserTrackingObservation::count());
+    }
+
     public function test_completion_and_failure_clear_binding_and_keep_run_records(): void
     {
         $this->postJson(route('research.automation.runs.create'), $this->runPayload());

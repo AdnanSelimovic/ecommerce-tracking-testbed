@@ -69,7 +69,9 @@ class ResearchAutomationController extends Controller
     public function observations(Request $request, ExperimentRun $run): JsonResponse
     {
         $validated = Validator::make($request->all(), [
-            'observations' => ['required', 'array', 'max:500'],
+            // An explicit empty collection is valid evidence: no browser
+            // observation is still a meaningful baseline outcome.
+            'observations' => ['present', 'array', 'max:500'],
             'observations.*.ground_truth_event_id' => ['nullable', 'uuid'],
             'observations.*.provider' => ['required', Rule::in(['ga4', 'meta'])],
             'observations.*.layer' => ['required', Rule::in(['js_invocation', 'network'])],
