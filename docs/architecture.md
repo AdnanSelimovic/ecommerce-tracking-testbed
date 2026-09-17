@@ -35,3 +35,48 @@ Purchase ground truth is additionally protected by a database unique constraint
 on `(event_name, order_id)`. MySQL and SQLite permit multiple null `order_id`
 values, so non-order events remain repeatable while one order cannot acquire two
 `purchase` records.
+
+## Milestone 3: correlated client baseline
+
+```text
+Laravel action
+      ↓
+GroundTruthEvent (event_id)
+      ↓
+ClientTrackingPayload (provider-neutral)
+      ↓
+one-time browser delivery
+      ↓
+ +-------------------------+-------------------------+
+ |                                                   |
+GA4                                             Meta Pixel
+testbed_event_id = event_id                    eventID = event_id
+testbed_run_id, tracking_channel=client
+```
+
+`ClientTrackingPayloadFactory` reads a ground-truth record and maps the
+canonical ecommerce taxonomy to provider-specific payloads outside the model.
+It retains event ID, experiment-run UUID, items, integer `value_minor`, currency,
+order number, and timestamp; decimal values are produced only for browser
+ecommerce parameters.
+
+The browser dispatcher is one Vite module. It loads the Google tag only for a
+configured public `GA4_MEASUREMENT_ID` and an eligible event, using
+`send_page_view: false`. It loads Meta Pixel only for a configured public
+`META_PIXEL_ID` and an eligible event. It deliberately makes no `page_view` or
+`PageView` call.
+
+Eligibility requires a currently bound running experiment run with
+`tracking_mode` of `client_only` or `server_augmented` and `consent_mode` of
+`full`. This is a temporary baseline rule, not consent enforcement. Ground truth
+continues to be recorded for every normal application action.
+
+For post/redirect/get events, `ClientTrackingQueue` stores only the exact
+ground-truth UUID in Laravel's session. The destination layout pulls, hydrates,
+and removes it before rendering. This prevents refresh-based duplicate browser
+dispatch without implying a platform acknowledgement.
+
+The project now distinguishes: **ground truth** (Laravel persisted the action),
+**browser dispatch attempt** (one eligible rendered `gtag`/`fbq` invocation),
+and **platform observation** (future evidence that GA4 or Meta received it).
+Milestone 3 records no platform observation and sends no server-side tracking.

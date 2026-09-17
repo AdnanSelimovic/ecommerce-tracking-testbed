@@ -35,5 +35,11 @@
 
         @yield('content')
     </main>
+
+    @if ($clientTracking['events'] !== [])
+        <script>
+            window.testbedClientTracking = @json($clientTracking);
+        </script>
+    @endif
 </body>
 </html>

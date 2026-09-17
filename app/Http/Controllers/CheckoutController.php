@@ -5,12 +5,13 @@ namespace App\Http\Controllers;
 use App\Services\Cart;
 use App\Services\GroundTruthRecorder;
 use App\Services\OrderCreator;
+use App\Tracking\ClientTrackingDelivery;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
 class CheckoutController extends Controller
 {
-    public function show(Cart $cart, GroundTruthRecorder $recorder): View|RedirectResponse
+    public function show(Cart $cart, GroundTruthRecorder $recorder, ClientTrackingDelivery $tracking): View|RedirectResponse
     {
         if ($cart->isEmpty()) {
             return redirect()->route('cart.index')->with('status', 'Your cart is empty.');
@@ -19,7 +20,7 @@ class CheckoutController extends Controller
         $lines = $cart->lines();
         $totalMinor = $cart->totalMinor();
 
-        $recorder->beginCheckout($lines, $totalMinor);
+        $tracking->queueIfEligible($recorder->beginCheckout($lines, $totalMinor));
 
         return view('checkout.show', [
             'lines' => $lines,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Services\GroundTruthRecorder;
+use App\Tracking\ClientTrackingDelivery;
 use Illuminate\Contracts\View\View;
 
 class ProductController extends Controller
@@ -15,11 +16,11 @@ class ProductController extends Controller
         ]);
     }
 
-    public function show(Product $product, GroundTruthRecorder $recorder): View
+    public function show(Product $product, GroundTruthRecorder $recorder, ClientTrackingDelivery $tracking): View
     {
         abort_unless($product->is_active, 404);
 
-        $recorder->viewItem($product);
+        $tracking->queueIfEligible($recorder->viewItem($product));
 
         return view('products.show', [
             'product' => $product,

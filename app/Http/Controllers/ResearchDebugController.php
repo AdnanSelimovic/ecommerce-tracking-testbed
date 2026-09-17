@@ -6,20 +6,26 @@ use App\Models\ExperimentRun;
 use App\Models\GroundTruthEvent;
 use App\Services\ExperimentRunContext;
 use App\Services\ExperimentRunManager;
+use App\Tracking\ClientTrackingEligibility;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class ResearchDebugController extends Controller
 {
-    public function index(Request $request, ExperimentRunContext $context): View
+    public function index(Request $request, ExperimentRunContext $context, ClientTrackingEligibility $tracking): View
     {
         $selectedRun = $request->filled('run')
             ? ExperimentRun::where('run_id', $request->string('run'))->firstOrFail()
             : null;
 
+        $currentRun = $context->current();
+
         return view('research.debug', [
-            'currentRun' => $context->current(),
+            'currentRun' => $currentRun,
+            'clientTrackingEligible' => $tracking->allowsRun($currentRun),
+            'ga4Configured' => (bool) config('tracking.ga4.enabled'),
+            'metaConfigured' => (bool) config('tracking.meta.enabled'),
             'selectedRun' => $selectedRun,
             'runs' => ExperimentRun::withCount('groundTruthEvents')->latest('id')->limit(20)->get(),
             'events' => GroundTruthEvent::with(['experimentRun', 'product', 'order'])

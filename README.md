@@ -13,9 +13,9 @@ that record.
 > GA4, Meta Pixel, GA4 Measurement Protocol and the Meta Conversions API are
 > *measurement systems under test*, never the definition of what occurred.
 
-Milestone 2 adds the controlled experiment-run lifecycle and browser-session
-attribution. No GA4, Meta, blocking implementation, consent banner, or browser
-automation has been added yet.
+Milestone 3 adds real, correlated **client-side** GA4 and Meta Pixel baseline
+instrumentation. Laravel remains the source of truth; browser dispatch is not
+treated as evidence that either external platform received an event.
 
 ---
 
@@ -143,9 +143,10 @@ currency is **EUR** (`config/testbed.php`, overridable with `TESTBED_CURRENCY`).
 
 Order creation is wrapped in a database transaction that writes the order, its
 items and the `purchase` event together. The confirmation page is a plain `GET`
-reached by a post/redirect/get, and the recorder additionally uses
-`firstOrCreate` keyed on `(event_name, order_id)`. Refreshing the confirmation
-page therefore cannot produce a second order or a second purchase event.
+reached by a post/redirect/get; a database unique constraint on
+`(event_name, order_id)` ensures a logical order cannot acquire two purchase
+ground-truth events. Refreshing confirmation therefore creates neither a new
+order nor a new purchase event.
 
 ---
 
@@ -194,15 +195,56 @@ storefront journey in that same browser session. Return to the page to inspect
 the attributed events and select **Finish active run**. Completion keeps the
 run and its records but unbinds the session.
 
+## Client-side tracking baseline
+
+Set the optional public identifiers in local `.env`; leave either blank to
+disable that provider independently. Never commit real IDs, API secrets, or
+Meta access tokens.
+
+```dotenv
+GA4_MEASUREMENT_ID=G-...
+META_PIXEL_ID=...
+```
+
+The Milestone 3 baseline dispatches only when a browser session has a running
+experiment run with `tracking_mode` of `client_only` or `server_augmented` and
+`consent_mode` of `full`. This is a temporary full-consent-only research policy,
+not consent management. `partial` and `none` dispatch nothing while Laravel
+continues to record ground truth.
+
+Each `GroundTruthEvent.event_id` is preserved in a provider-neutral client
+payload. GA4 receives it as `testbed_event_id` (with `testbed_run_id` and
+`tracking_channel=client`); Meta receives it as Pixel `eventID`. GA4 purchases
+use the synthetic order number as `transaction_id`, never the event UUID.
+
+| Laravel event | GA4 event | Meta Pixel event |
+| --- | --- | --- |
+| `view_item` | `view_item` | `ViewContent` |
+| `add_to_cart` | `add_to_cart` | `AddToCart` |
+| `begin_checkout` | `begin_checkout` | `InitiateCheckout` |
+| `purchase` | `purchase` | `Purchase` |
+
+`view_item` and `begin_checkout` are rendered on the response that created
+their ground truth. `add_to_cart` and `purchase` use a dedicated session queue
+of event UUIDs; the next response pulls and removes them, so refresh cannot
+dispatch them again. Removal means Laravel rendered one browser dispatch
+attempt, not that GA4 or Meta received it.
+
+No `page_view` or `PageView` is sent. GA4 is configured with
+`send_page_view: false`; also disable history-based page changes in the GA4 web
+stream's Enhanced Measurement settings. No Meta `PageView` call is made.
+
+Run `npm run dev` or `npm run build` after configuring identifiers. The local
+`/research/debug` page shows provider configuration and run eligibility.
+
 ---
 
 ## Roadmap
 
-1. Client-side GA4 and Meta instrumentation, with no fabricated observations
-2. Server-augmented GA4 Measurement Protocol and Meta Conversions API delivery
-3. Playwright automation of controlled sessions and conditions
-4. Blocking, privacy, and consent scenarios
-5. Experimental dataset generation and analysis
+1. Server-augmented GA4 Measurement Protocol and Meta Conversions API delivery
+2. Playwright automation of controlled sessions and conditions
+3. Blocking, privacy, and consent scenarios
+4. Experimental dataset generation and analysis
 
 ---
 
@@ -221,9 +263,11 @@ app/
   Services/ExperimentRunContext.php session-to-run binding
   Services/ExperimentRunManager.php controlled run creation/transitions
   Services/GroundTruthRecorder.php backend source of truth + run attribution
+  Tracking/                         client payload, eligibility, queue, mappers
   Support/Money.php                integer minor-unit helpers
   Support/CartLine.php
 config/testbed.php                 currency + canonical event names
+config/tracking.php                public GA4/Meta client configuration
 config/database.php                published only to force ENGINE=InnoDB
 database/migrations/               schema
 database/seeders/ProductSeeder.php 4 synthetic products

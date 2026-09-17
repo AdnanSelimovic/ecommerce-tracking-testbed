@@ -6,6 +6,14 @@
     <h1>Research debug</h1>
     <p class="muted">Backend ground truth. Measurement systems are compared against this, never the other way around.</p>
 
+    <h2>Client tracking baseline</h2>
+    <div class="card">
+        <p>GA4 client: <strong>{{ $ga4Configured ? 'configured' : 'disabled (no measurement ID)' }}</strong></p>
+        <p>Meta Pixel client: <strong>{{ $metaConfigured ? 'configured' : 'disabled (no Pixel ID)' }}</strong></p>
+        <p>Current run eligibility: <strong>{{ $clientTrackingEligible ? 'eligible (full-consent controlled run)' : 'not eligible' }}</strong></p>
+        <p class="muted">This milestone dispatches only canonical ecommerce events. It does not claim that either platform received them.</p>
+    </div>
+
     <h2>Current browser-session run</h2>
     <div class="card">
         @if ($currentRun)

@@ -7,11 +7,16 @@ use App\Models\Order;
 use App\Support\CartLine;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Models\GroundTruthEvent;
+use App\Tracking\ClientTrackingDelivery;
 use RuntimeException;
 
 class OrderCreator
 {
-    public function __construct(private readonly GroundTruthRecorder $recorder)
+    public function __construct(
+        private readonly GroundTruthRecorder $recorder,
+        private readonly ClientTrackingDelivery $tracking,
+    )
     {
     }
 
@@ -29,7 +34,9 @@ class OrderCreator
             throw new RuntimeException('Cannot create an order from an empty cart.');
         }
 
-        return DB::transaction(function () use ($lines): Order {
+        $purchaseEvent = null;
+
+        $order = DB::transaction(function () use ($lines, &$purchaseEvent): Order {
             $order = Order::create([
                 'order_number' => $this->generateOrderNumber(),
                 'total_minor' => $lines->sum(fn (CartLine $line) => $line->lineTotalMinor()),
@@ -47,10 +54,15 @@ class OrderCreator
                 ]);
             }
 
-            $this->recorder->purchase($order->load('items'));
+            $purchaseEvent = $this->recorder->purchase($order->load('items'));
 
             return $order;
         });
+
+        /** @var GroundTruthEvent $purchaseEvent */
+        $this->tracking->queueIfEligible($purchaseEvent);
+
+        return $order;
     }
 
     private function generateOrderNumber(): string
