@@ -117,6 +117,27 @@ and waits a configurable fixed observation window (3000ms by default), never
 result. `browser_tracking_observations` distinguishes `js_invocation` from
 `network`, and `script` from `event_transport`, while allowing duplicates.
 
+## Controlled GA4 blocking experiment
+
+The final comparison is GA4-only: Chromium runs `client_only` and
+`server_augmented` under `none` and `controlled` browser-network conditions.
+Both conditions create a fresh context with `serviceWorkers: 'block'` and
+install the same route handler because Playwright routing disables HTTP cache.
+The control handler continues every request. The controlled handler uses the
+same centralized classifier as the observer and aborts only GA4 loader or event
+transport requests with `blockedbyclient`; Laravel, application assets,
+unrelated Google traffic, and server-side Measurement Protocol calls are not
+browser-routed.
+
+The observer receives the policy decision directly and writes
+`blocked_by_client` plus `{ blocking_mode: controlled, policy_decision: block
+}`. This preserves the distinction between intentional experimental blocking,
+an ordinary network failure, and a response received before a browser abort.
+Experiment metadata records routing, policy version, service-worker policy,
+and observation window. A controlled block does not fail the ecommerce flow;
+it is expected client-layer evidence. No repetitions, statistics, Meta, consent,
+privacy-profile, or real-ad-blocker work belongs to this implementation step.
+
 ## Milestone 4: queued server augmentation
 
 ```text

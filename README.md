@@ -149,6 +149,35 @@ under `storage/app/research/playwright/<run-id>/`; a failed run also writes
 Traces and artifacts can contain detailed browser and network evidence, so
 review them before external publication.
 
+### Final GA4 controlled-browser conditions
+
+The final thesis experiment uses **GA4 only**, Chromium only, and four
+conditions: `client_only` or `server_augmented`, each with `none` or
+`controlled` GA4 browser blocking. Meta, consent variants, privacy profiles,
+multiple browsers, and real blocker extensions are outside this scope.
+
+Both `none` and `controlled` install the same Playwright BrowserContext routing
+infrastructure and set `serviceWorkers: 'block'`. Routing disables HTTP cache,
+so keeping it in both conditions prevents cache/routing from becoming a
+confound. `none` continues every request; `controlled` aborts only requests
+the shared GA4 classifier identifies as loader scripts or event transports.
+This is controlled browser-side GA4 request blocking, not an emulation of a
+specific ad blocker. The earlier passive baseline is engineering-validation
+evidence, not final comparative data.
+
+Use the calibrated 10-second pilot window:
+
+```bash
+npm run experiment:baseline -- --tracking-mode=client_only --blocking-mode=none --observation-ms=10000
+npm run experiment:baseline -- --tracking-mode=client_only --blocking-mode=controlled --observation-ms=10000
+npm run experiment:baseline -- --tracking-mode=server_augmented --blocking-mode=controlled --observation-ms=10000
+```
+
+`blocked_by_client` is explicit experiment-policy evidence, distinct from a
+normal browser failure. Application-side GA4 dispatch invocation does not mean
+the Google library loaded or processed an event, and browser transport evidence
+does not mean GA4 reporting observed it.
+
 ## Current ecommerce flow
 
 | Step | Route | Ground-truth event |

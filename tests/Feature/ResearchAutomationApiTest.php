@@ -50,6 +50,16 @@ class ResearchAutomationApiTest extends TestCase
         $this->assertSame($run->id, app(ExperimentRunContext::class)->current()?->id);
     }
 
+    public function test_automation_accepts_both_final_blocking_modes_and_rejects_others(): void
+    {
+        $this->postJson(route('research.automation.runs.create'), $this->runPayload(['blocking_mode' => 'controlled']))
+            ->assertCreated()
+            ->assertJsonPath('run.blocking_mode', 'controlled');
+
+        $this->postJson(route('research.automation.runs.create'), $this->runPayload(['blocking_mode' => 'real_blocker']))
+            ->assertUnprocessable();
+    }
+
     public function test_events_are_scoped_to_the_requested_run(): void
     {
         $run = ExperimentRun::create();
@@ -96,6 +106,22 @@ class ResearchAutomationApiTest extends TestCase
         $this->assertSame(0, BrowserTrackingObservation::count());
     }
 
+    public function test_controlled_block_observations_are_valid_and_remain_duplicate_evidence(): void
+    {
+        $run = ExperimentRun::create();
+        $blocked = $this->observation([
+            'resource_kind' => 'script',
+            'outcome' => 'blocked_by_client',
+            'failure_text' => 'net::ERR_BLOCKED_BY_CLIENT',
+            'metadata' => ['blocking_mode' => 'controlled', 'policy_decision' => 'block'],
+        ]);
+
+        $this->postJson(route('research.automation.runs.observations', $run), ['observations' => [$blocked, $blocked]])
+            ->assertCreated()
+            ->assertJsonPath('inserted', 2);
+        $this->assertSame(2, BrowserTrackingObservation::count());
+    }
+
     public function test_completion_and_failure_clear_binding_and_keep_run_records(): void
     {
         $this->postJson(route('research.automation.runs.create'), $this->runPayload());
@@ -115,9 +141,9 @@ class ResearchAutomationApiTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function runPayload(): array
+    private function runPayload(array $overrides = []): array
     {
-        return ['tracking_mode' => 'client_only', 'blocking_mode' => 'none', 'privacy_mode' => 'standard', 'consent_mode' => 'full', 'browser' => 'chromium', 'browser_version' => '153', 'metadata' => ['runner' => 'runner']];
+        return array_merge(['tracking_mode' => 'client_only', 'blocking_mode' => 'none', 'privacy_mode' => 'standard', 'consent_mode' => 'full', 'browser' => 'chromium', 'browser_version' => '153', 'metadata' => ['runner' => 'runner']], $overrides);
     }
 
     /** @param array<string, mixed> $overrides @return array<string, mixed> */

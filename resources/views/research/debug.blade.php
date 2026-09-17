@@ -46,9 +46,9 @@
         <form method="post" action="{{ route('research.runs.start') }}">
             @csrf
             <p><label>Tracking <select name="tracking_mode"><option value="">Unset</option><option value="client_only">client_only</option><option value="server_augmented">server_augmented</option></select></label>
-            <label>Blocking <select name="blocking_mode"><option value="">Unset</option><option value="none">none</option><option value="controlled">controlled</option><option value="real_blocker">real_blocker</option></select></label>
-            <label>Privacy <select name="privacy_mode"><option value="">Unset</option><option value="standard">standard</option><option value="restrictive">restrictive</option></select></label></p>
-            <p><label>Consent <select name="consent_mode"><option value="">Unset</option><option value="full">full</option><option value="partial">partial</option><option value="none">none</option></select></label>
+            <label>Blocking <select name="blocking_mode"><option value="">Unset</option><option value="none">none</option><option value="controlled">controlled</option></select></label>
+            <label>Privacy <select name="privacy_mode"><option value="">Unset</option><option value="standard">standard</option></select></label></p>
+            <p><label>Consent <select name="consent_mode"><option value="">Unset</option><option value="full">full</option></select></label>
             <label>Browser <input name="browser" maxlength="255"></label>
             <label>Version <input name="browser_version" maxlength="255"></label></p>
             <button type="submit">Create, start, and bind run</button>

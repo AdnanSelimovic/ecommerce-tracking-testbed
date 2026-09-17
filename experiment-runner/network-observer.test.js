@@ -54,3 +54,18 @@ test('records a normal completed request as finished', () => {
     assert.equal(observation.response_status, 204);
     assert.equal(observation.failure_text, null);
 });
+
+test('marks a policy-known request as blocked_by_client instead of a network failure', () => {
+    const context = new EventEmitter();
+    let blockedRequest;
+    const policy = { wasIntentionallyBlocked: (request) => request === blockedRequest };
+    const observer = new NetworkObserver(context, [eventId], policy);
+    const request = new FakeRequest('https://www.googletagmanager.com/gtag/js?id=G-X');
+    blockedRequest = request;
+    context.emit('request', request);
+    context.emit('requestfailed', request);
+
+    const observation = observer.observations()[0];
+    assert.equal(observation.outcome, 'blocked_by_client');
+    assert.deepEqual(observation.metadata, { blocking_mode: 'controlled', policy_decision: 'block' });
+});

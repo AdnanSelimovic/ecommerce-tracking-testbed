@@ -37,7 +37,7 @@ class ResearchAutomationController extends Controller
     {
         $attributes = Validator::make($request->all(), [
             'tracking_mode' => ['required', Rule::in(['client_only', 'server_augmented'])],
-            'blocking_mode' => ['required', Rule::in(['none'])],
+            'blocking_mode' => ['required', Rule::in(['none', 'controlled'])],
             'privacy_mode' => ['required', Rule::in(['standard'])],
             'consent_mode' => ['required', Rule::in(['full'])],
             'browser' => ['required', 'string', 'max:255'],
@@ -78,7 +78,7 @@ class ResearchAutomationController extends Controller
             'observations.*.resource_kind' => ['required', Rule::in(['script', 'event_transport'])],
             'observations.*.canonical_event_name' => ['nullable', 'string', 'max:100'],
             'observations.*.provider_event_name' => ['nullable', 'string', 'max:100'],
-            'observations.*.outcome' => ['required', Rule::in(['issued', 'finished', 'failed', 'response_received_aborted'])],
+            'observations.*.outcome' => ['required', Rule::in(['issued', 'finished', 'failed', 'response_received_aborted', 'blocked_by_client'])],
             'observations.*.correlation_method' => ['nullable', Rule::in(['embedded_event_uuid'])],
             'observations.*.request_method' => ['nullable', 'string', 'max:16'],
             'observations.*.request_host' => ['nullable', 'string', 'max:255'],

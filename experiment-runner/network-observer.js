@@ -1,8 +1,9 @@
 import { classifyRequest, findKnownUuids, requestFingerprint } from './provider-classifier.js';
 
 export class NetworkObserver {
-    constructor(context, knownUuids) {
+    constructor(context, knownUuids, policy = null) {
         this.knownUuids = knownUuids;
+        this.policy = policy;
         this.requests = new Map();
         this.records = [];
         context.on('request', (request) => this.request(request));
@@ -27,12 +28,14 @@ export class NetworkObserver {
 
     failed(request) {
         const item = this.requests.get(request);
-        const outcome = item?.responseStatus === null ? 'failed' : 'response_received_aborted';
+        const intentionallyBlocked = this.policy?.wasIntentionallyBlocked(request) ?? false;
+        const outcome = intentionallyBlocked ? 'blocked_by_client'
+            : item?.responseStatus === null ? 'failed' : 'response_received_aborted';
 
-        this.record(request, outcome, request.failure()?.errorText ?? 'Browser transport failure');
+        this.record(request, outcome, request.failure()?.errorText ?? 'Browser transport failure', intentionallyBlocked);
     }
 
-    record(request, outcome, failureText = null) {
+    record(request, outcome, failureText = null, intentionallyBlocked = false) {
         const item = this.requests.get(request);
         if (!item) return;
         this.requests.delete(request);
@@ -45,7 +48,7 @@ export class NetworkObserver {
             observed_at: item.observedAt.toISOString(), finished_at: finishedAt.toISOString(),
             duration_ms: finishedAt - item.observedAt, response_status: item.responseStatus,
             failure_text: failureText,
-            metadata: null,
+            metadata: intentionallyBlocked ? { blocking_mode: 'controlled', policy_decision: 'block' } : null,
         };
         this.records.push({ base, rawUrl: request.url(), rawPostData: postData });
     }
@@ -55,7 +58,7 @@ export class NetworkObserver {
             const matches = base.resource_kind === 'event_transport'
                 ? findKnownUuids(rawUrl, rawPostData, this.knownUuids) : [];
             if (matches.length === 1) return { ...base, ground_truth_event_id: matches[0], correlation_method: 'embedded_event_uuid' };
-            return { ...base, metadata: matches.length > 1 ? { matching_event_uuids: matches } : null };
+            return { ...base, metadata: matches.length > 1 ? { ...(base.metadata ?? {}), matching_event_uuids: matches } : base.metadata };
         });
     }
 }

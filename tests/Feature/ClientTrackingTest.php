@@ -7,6 +7,7 @@ use App\Models\ExperimentRun;
 use App\Models\GroundTruthEvent;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\ExperimentRunContext;
 use App\Tracking\ClientTrackingEligibility;
 use App\Tracking\ClientTrackingPayloadFactory;
 use App\Tracking\Ga4ClientEventMapper;
@@ -134,12 +135,19 @@ class ClientTrackingTest extends TestCase
 
         $this->get(route('products.show', $product))->assertDontSee('testbedClientTracking');
 
-        $this->startRun(consentMode: 'partial');
+        $this->bindHistoricalConsentRun('partial');
         $this->get(route('products.show', $product))->assertDontSee('testbedClientTracking');
 
         $this->post(route('research.context.clear'));
-        $this->startRun(consentMode: 'none');
+        $this->bindHistoricalConsentRun('none');
         $this->get(route('products.show', $product))->assertDontSee('testbedClientTracking');
+    }
+
+    private function bindHistoricalConsentRun(string $consentMode): void
+    {
+        $run = ExperimentRun::create(['tracking_mode' => 'client_only', 'consent_mode' => $consentMode]);
+        $run->transitionTo(\App\Enums\ExperimentRunStatus::Running);
+        app(ExperimentRunContext::class)->bind($run);
     }
 
     public function test_add_to_cart_is_rendered_once_after_redirect_and_not_on_cart_refresh(): void

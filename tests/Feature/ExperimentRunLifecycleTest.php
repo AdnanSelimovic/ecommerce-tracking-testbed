@@ -26,8 +26,8 @@ class ExperimentRunLifecycleTest extends TestCase
         $run = app(ExperimentRunManager::class)->create([
             'tracking_mode' => 'client_only',
             'blocking_mode' => 'controlled',
-            'privacy_mode' => 'restrictive',
-            'consent_mode' => 'partial',
+            'privacy_mode' => 'standard',
+            'consent_mode' => 'full',
             'browser' => 'Chrome',
             'browser_version' => '140',
             'metadata' => ['operator' => 'test'],
