@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Support\CartLine;
 use Illuminate\Support\Collection;
+use Illuminate\Database\QueryException;
 
 /**
  * Records canonical backend ecommerce events.
@@ -18,6 +19,10 @@ use Illuminate\Support\Collection;
  */
 class GroundTruthRecorder
 {
+    public function __construct(private readonly ExperimentRunContext $experimentContext)
+    {
+    }
+
     public function viewItem(Product $product): GroundTruthEvent
     {
         return $this->record(GroundTruthEventName::ViewItem, [
@@ -70,12 +75,18 @@ class GroundTruthRecorder
      */
     public function purchase(Order $order): GroundTruthEvent
     {
-        return GroundTruthEvent::firstOrCreate(
-            [
+        $existing = GroundTruthEvent::where('event_name', GroundTruthEventName::Purchase->value)
+            ->where('order_id', $order->id)
+            ->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        try {
+            return GroundTruthEvent::create([
                 'event_name' => GroundTruthEventName::Purchase->value,
                 'order_id' => $order->id,
-            ],
-            [
                 'experiment_run_id' => $this->currentExperimentRunId(),
                 'quantity' => (int) $order->items->sum('quantity'),
                 'value_minor' => $order->total_minor,
@@ -91,8 +102,18 @@ class GroundTruthRecorder
                         'line_total_minor' => $item->line_total_minor,
                     ])->all(),
                 ],
-            ]
-        );
+            ]);
+        } catch (QueryException $exception) {
+            $existing = GroundTruthEvent::where('event_name', GroundTruthEventName::Purchase->value)
+                ->where('order_id', $order->id)
+                ->first();
+
+            if ($existing !== null) {
+                return $existing;
+            }
+
+            throw $exception;
+        }
     }
 
     /**
@@ -109,11 +130,10 @@ class GroundTruthRecorder
     }
 
     /**
-     * Seam for the experiment runner (milestone 2). Until then every event is
-     * recorded outside of any experiment run.
+     * The browser/session context is intentionally isolated from this recorder.
      */
     protected function currentExperimentRunId(): ?int
     {
-        return null;
+        return $this->experimentContext->current()?->getKey();
     }
 }

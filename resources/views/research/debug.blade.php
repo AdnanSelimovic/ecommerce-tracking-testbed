@@ -6,10 +6,41 @@
     <h1>Research debug</h1>
     <p class="muted">Backend ground truth. Measurement systems are compared against this, never the other way around.</p>
 
+    <h2>Current browser-session run</h2>
+    <div class="card">
+        @if ($currentRun)
+            <p><code>{{ $currentRun->run_id }}</code> — {{ $currentRun->status->value }}, {{ $currentRun->tracking_mode ?? 'tracking unset' }}, started {{ $currentRun->started_at?->toDateTimeString() ?? '—' }}.</p>
+            <form method="post" action="{{ route('research.runs.finish', $currentRun) }}">
+                @csrf
+                <button type="submit">Finish active run</button>
+            </form>
+        @else
+            <p class="muted">No active run is bound to this browser session.</p>
+        @endif
+        <form method="post" action="{{ route('research.context.clear') }}">
+            @csrf
+            <button type="submit">Clear/unbind session run</button>
+        </form>
+    </div>
+
+    <h2>Start a controlled run</h2>
+    <div class="card">
+        <form method="post" action="{{ route('research.runs.start') }}">
+            @csrf
+            <p><label>Tracking <select name="tracking_mode"><option value="">Unset</option><option value="client_only">client_only</option><option value="server_augmented">server_augmented</option></select></label>
+            <label>Blocking <select name="blocking_mode"><option value="">Unset</option><option value="none">none</option><option value="controlled">controlled</option><option value="real_blocker">real_blocker</option></select></label>
+            <label>Privacy <select name="privacy_mode"><option value="">Unset</option><option value="standard">standard</option><option value="restrictive">restrictive</option></select></label></p>
+            <p><label>Consent <select name="consent_mode"><option value="">Unset</option><option value="full">full</option><option value="partial">partial</option><option value="none">none</option></select></label>
+            <label>Browser <input name="browser" maxlength="255"></label>
+            <label>Version <input name="browser_version" maxlength="255"></label></p>
+            <button type="submit">Create, start, and bind run</button>
+        </form>
+    </div>
+
     <h2>Experiment runs ({{ $runs->count() }})</h2>
     <div class="card">
         @if ($runs->isEmpty())
-            <p class="muted">No experiment runs yet. The experiment runner arrives in a later milestone.</p>
+            <p class="muted">No experiment runs yet.</p>
         @else
             <table>
                 <thead>
@@ -23,6 +54,7 @@
                         <th>status</th>
                         <th>started</th>
                         <th>finished</th>
+                        <th>events</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -34,9 +66,10 @@
                             <td>{{ $run->privacy_mode ?? '—' }}</td>
                             <td>{{ $run->consent_mode ?? '—' }}</td>
                             <td>{{ trim(($run->browser ?? '').' '.($run->browser_version ?? '')) ?: '—' }}</td>
-                            <td>{{ $run->status }}</td>
+                            <td>{{ $run->status->value }}</td>
                             <td>{{ optional($run->started_at)->toDateTimeString() ?? '—' }}</td>
                             <td>{{ optional($run->finished_at)->toDateTimeString() ?? '—' }}</td>
+                            <td><a href="{{ route('research.debug', ['run' => $run->run_id]) }}">{{ $run->ground_truth_events_count }}</a></td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -44,7 +77,10 @@
         @endif
     </div>
 
-    <h2>Ground-truth events ({{ $events->count() }} most recent)</h2>
+    <h2>Ground-truth events{{ $selectedRun ? ' for '.$selectedRun->run_id : '' }} ({{ $events->count() }} most recent)</h2>
+    @if ($selectedRun)
+        <p><a href="{{ route('research.debug') }}">Show all runs</a></p>
+    @endif
     <div class="card">
         @if ($events->isEmpty())
             <p class="muted">No ground-truth events recorded yet.</p>

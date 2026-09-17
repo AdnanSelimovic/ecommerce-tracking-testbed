@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\GroundTruthEventName;
+use App\Enums\ExperimentRunStatus;
 use App\Models\ExperimentRun;
 use App\Models\GroundTruthEvent;
 use App\Models\Order;
@@ -38,7 +39,7 @@ class GroundTruthEventTest extends TestCase
         $run = ExperimentRun::create([]);
 
         $this->assertTrue(Str::isUuid($run->run_id));
-        $this->assertSame('pending', $run->status);
+        $this->assertSame(ExperimentRunStatus::Pending, $run->status);
     }
 
     public function test_a_successful_order_creates_exactly_one_purchase_event(): void

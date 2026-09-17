@@ -13,15 +13,15 @@ that record.
 > GA4, Meta Pixel, GA4 Measurement Protocol and the Meta Conversions API are
 > *measurement systems under test*, never the definition of what occurred.
 
-Milestone 1 (this version) contains only the clean foundation: the storefront,
-the ground-truth event recorder, and the experiment schema. No GA4, no Meta, no
-blocking, no consent and no browser automation yet.
+Milestone 2 adds the controlled experiment-run lifecycle and browser-session
+attribution. No GA4, Meta, blocking implementation, consent banner, or browser
+automation has been added yet.
 
 ---
 
 ## Requirements
 
-- PHP 8.2+ (developed against PHP 8.4 under WampServer)
+- PHP 8.3+ (Laravel 13; developed against PHP 8.4 under WampServer)
   - required extensions: the usual Laravel set, plus `pdo_mysql`
   - `pdo_sqlite` is required **only** to run the automated test suite
 - Composer 2
@@ -42,10 +42,8 @@ cp .env.example .env        # Windows: copy .env.example .env
 php artisan key:generate
 ```
 
-There is no `composer.lock` in the first commit, so `composer install` resolves
-the latest compatible dependency versions and writes the lock file. Commit the
-generated `composer.lock` and `package-lock.json` so the environment is
-reproducible from that point on.
+`composer.lock` and `package-lock.json` are committed. Use `composer install`
+and `npm ci` to reproduce the locked dependency sets.
 
 ### Web server
 
@@ -171,29 +169,40 @@ belong here. When measurement systems are added, their payloads and delivery
 metadata get their own tables and are joined back to `event_id`.
 
 `ExperimentRun` describes one controlled measurement run (tracking mode,
-blocking mode, privacy mode, consent mode, browser, timings, metadata). The
-schema exists now; **the experiment runner is not implemented yet** —
-`GroundTruthRecorder::currentExperimentRunId()` is the seam where it will plug
-in, and every event is currently recorded with a null run.
+blocking mode, privacy mode, consent mode, browser, timings, metadata). Its
+lifecycle is `pending → running → completed`; a running run may alternatively
+end as `failed` or `cancelled`. Terminal runs cannot restart. Starting records
+`started_at`; terminal transitions record `finished_at`.
+
+A running run may be bound to one Laravel browser session through
+`App\Services\ExperimentRunContext`. `GroundTruthRecorder` reads that context,
+so `view_item`, `add_to_cart`, `begin_checkout`, and `purchase` automatically
+receive the active run's database id. Browsing without a bound run remains
+valid and stores a null `experiment_run_id`.
 
 ### Research debug page
 
-`GET /research/debug` lists the most recent experiment runs and ground-truth
-events (event id, run, event name, product/order, value, timestamp). It is an
-inspection tool, not a UI.
+`GET /research/debug` is a local/testing-only scientific control surface. It
+can create, start, and bind a run; show or clear the current session's run;
+finish the active run; list recent runs with event counts; and scope the event
+list to a run. It is intentionally not an authentication-protected production
+admin interface and returns 404 outside local/testing environments.
+
+For a manual controlled flow, open `/research/debug`, set the desired
+conditions, select **Create, start, and bind run**, then perform the normal
+storefront journey in that same browser session. Return to the page to inspect
+the attributed events and select **Finish active run**. Completion keeps the
+run and its records but unbinds the session.
 
 ---
 
 ## Roadmap
 
-1. GA4 client-side tracking
-2. Meta Pixel
-3. GA4 server-side tracking (Measurement Protocol)
-4. Meta Conversions API
-5. Playwright automation of synthetic sessions
-6. Blocking / privacy scenarios
-7. Consent scenarios
-8. Experimental dataset generation and analysis
+1. Client-side GA4 and Meta instrumentation, with no fabricated observations
+2. Server-augmented GA4 Measurement Protocol and Meta Conversions API delivery
+3. Playwright automation of controlled sessions and conditions
+4. Blocking, privacy, and consent scenarios
+5. Experimental dataset generation and analysis
 
 ---
 
@@ -201,7 +210,7 @@ inspection tool, not a UI.
 
 ```
 app/
-  Enums/GroundTruthEventName.php   canonical, vendor-neutral event names
+  Enums/                           canonical events, order status, run lifecycle
   Enums/OrderStatus.php
   Http/Controllers/               thin controllers
   Http/Requests/AddToCartRequest.php
@@ -209,7 +218,9 @@ app/
                                    ExperimentRun, GroundTruthEvent
   Services/Cart.php                session cart
   Services/OrderCreator.php        transactional order + purchase event
-  Services/GroundTruthRecorder.php backend source of truth
+  Services/ExperimentRunContext.php session-to-run binding
+  Services/ExperimentRunManager.php controlled run creation/transitions
+  Services/GroundTruthRecorder.php backend source of truth + run attribution
   Support/Money.php                integer minor-unit helpers
   Support/CartLine.php
 config/testbed.php                 currency + canonical event names
