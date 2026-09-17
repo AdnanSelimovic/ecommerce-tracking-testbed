@@ -3,6 +3,7 @@
 namespace App\Tracking;
 
 use App\Models\GroundTruthEvent;
+use App\Services\ExperimentRunContext;
 
 class ClientTrackingDelivery
 {
@@ -12,6 +13,7 @@ class ClientTrackingDelivery
         private readonly ClientTrackingPayloadFactory $payloads,
         private readonly Ga4ClientEventMapper $ga4,
         private readonly MetaClientEventMapper $meta,
+        private readonly ExperimentRunContext $context,
     ) {
     }
 
@@ -46,9 +48,11 @@ class ClientTrackingDelivery
                 'ga4' => [
                     'enabled' => (bool) config('tracking.ga4.enabled'),
                     'measurement_id' => config('tracking.ga4.measurement_id'),
+                    'consent' => Ga4ConsentProfile::for($this->context->current()?->consent_mode ?? 'none'),
                 ],
                 'meta' => [
-                    'enabled' => (bool) config('tracking.meta.enabled'),
+                    // Experiment 2 is intentionally GA4-only; preserve ordinary app behaviour otherwise.
+                    'enabled' => ($this->context->current()?->metadata['experiment_family'] ?? null) !== 'privacy_consent' && (bool) config('tracking.meta.enabled'),
                     'pixel_id' => config('tracking.meta.pixel_id'),
                 ],
             ],

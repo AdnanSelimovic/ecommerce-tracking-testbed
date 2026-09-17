@@ -22,8 +22,8 @@ class ExperimentRunManager
         $validated = Validator::make($attributes, [
             'tracking_mode' => ['nullable', 'in:client_only,server_augmented'],
             'blocking_mode' => ['nullable', 'in:none,controlled'],
-            'privacy_mode' => ['nullable', 'in:standard'],
-            'consent_mode' => ['nullable', 'in:full'],
+            'privacy_mode' => ['nullable', 'in:standard,javascript_disabled'],
+            'consent_mode' => ['nullable', 'in:full,partial,none'],
             'browser' => ['nullable', 'string', 'max:255'],
             'browser_version' => ['nullable', 'string', 'max:255'],
             'metadata' => ['nullable', 'array'],

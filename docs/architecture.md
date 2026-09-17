@@ -151,6 +151,14 @@ batch valid only after checking run counts, fixed conditions, canonical events,
 blocking evidence, and expected server endpoint evidence. Endpoint acceptance
 is API transport evidence, not GA4 reporting observation.
 
+## Experiment 2: restrictive JavaScript execution and consent
+
+Experiment 2 is isolated from frozen Experiment 1 evidence. It contains only client-only, unblocked GA4 conditions E/F/G/H: standard/full, javascript-disabled/full, standard/partial, and standard/none. A fresh headless Chromium context is still routed and blocks service workers; F sets Playwright `javaScriptEnabled: false`. Laravel ground truth remains independent of JavaScript, so every valid condition has the same four canonical events.
+
+One consent-profile mapper is the authority for all recorded profiles and the browser bootstrap queues `gtag('consent', 'default', profile)` before `js`, `config`, and canonical events. Full grants all four Consent Mode v2-style values, partial grants analytics storage only, and none denies all four. These are synthetic basic-consent states, not CMP/banner behavior. Client delivery is eligible for full and partial; none gates GA4 delivery. Server eligibility remains full-only, while this client-only experiment asserts zero server and Meta participation.
+
+The shared persisted-evidence validator is used by the Experiment 2 exporter and mirrors collector manipulation checks. It validates fixed apparatus, canonical ground truth, condition mapping, consent profile, and evidence requirements. It never requires a particular G correlated network count: 0–4 is the outcome being measured. Collection manifests are atomic, revision-pinned, sequential, and preserve failed evidence; research collections are git-ignored.
+
 ## Milestone 4: queued server augmentation
 
 ```text

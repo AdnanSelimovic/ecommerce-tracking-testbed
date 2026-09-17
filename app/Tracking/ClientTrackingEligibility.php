@@ -16,7 +16,7 @@ class ClientTrackingEligibility
     {
         return $run !== null
             && in_array($run->tracking_mode, ['client_only', 'server_augmented'], true)
-            && $run->consent_mode === 'full';
+            && in_array($run->consent_mode, ['full', 'partial'], true);
     }
 
     public function allows(GroundTruthEvent $event): bool

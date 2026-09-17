@@ -333,6 +333,20 @@ Run `npm run dev` or `npm run build` after configuring identifiers. The local
 1. Blocking, privacy, and consent scenarios
 2. Experimental dataset generation and analysis
 
+## Experiment 2: privacy and consent supplementary experiment
+
+Experiment 1 is complete and frozen: its GA4-only controlled-browser blocking comparison used A/B/C/D and 40 completed runs. Experiment 2 is a separate planned 40-run client-only supplement: E standard/full, F JavaScript-disabled/full, G standard/partial, and H standard/none. It uses Chromium headless, routing, blocked service workers, and a 10-second observation window, with ten counterbalanced repetitions per condition.
+
+The synthetic consent states use Google Consent Mode v2-style profiles with basic consent semantics: full grants all four values; partial grants only `analytics_storage`; none denies all four. There is no CMP or banner UX study. Partial consent can initialize GA4 and its 0–4 correlated browser transports are an empirical result, not a validity criterion. `javascript_disabled` is one strong restrictive browser setting, not a generalization to all browsers or privacy technologies.
+
+```bash
+npm run experiment:collect-privacy-consent -- --batch-id=expanded-test --dry-run
+# After the apparatus is committed and the working tree is clean:
+npm run experiment:collect-privacy-consent -- --batch-id=privacy-consent-YYYY-MM-DD --execute
+npm run experiment:collect-privacy-consent -- --resume=privacy-consent-YYYY-MM-DD --execute
+php artisan research:export-privacy-consent privacy-consent-YYYY-MM-DD
+```
+
 ## Server-augmented tracking
 
 For `server_augmented` and full-consent runs, Laravel creates durable GA4 MP and

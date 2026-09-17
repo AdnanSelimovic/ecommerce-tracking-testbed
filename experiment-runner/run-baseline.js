@@ -7,6 +7,7 @@ import { NetworkObserver } from './network-observer.js';
 import { ControlledNetworkPolicy } from './network-policy.js';
 import { prepareArtifacts, writeJson } from './artifacts.js';
 import { runScenario } from './scenario.js';
+import { consentProfile } from './privacy-consent.js';
 
 const require = createRequire(import.meta.url);
 const playwrightVersion = require('@playwright/test/package.json').version;
@@ -26,7 +27,7 @@ const knownUuids = [];
 try {
     browser = await chromium.launch({ headless: !options.headed });
     const browserVersion = browser.version();
-    context = await browser.newContext({ serviceWorkers: 'block' }); // A new, non-persistent context is one ExperimentRun.
+    context = await browser.newContext({ serviceWorkers: 'block', javaScriptEnabled: options.privacyMode !== 'javascript_disabled' }); // A new, non-persistent context is one ExperimentRun.
     await context.exposeBinding('__testbedCaptureClientTracking', (_source, detail) => {
         jsObservations.push({
             provider: detail.provider, layer: 'js_invocation', resource_kind: detail.resource_kind ?? 'event_transport',
@@ -49,7 +50,7 @@ try {
     await control.bootstrap();
     run = await control.createRun({
         tracking_mode: options.trackingMode,
-        blocking_mode: options.blockingMode, privacy_mode: 'standard', consent_mode: 'full',
+        blocking_mode: options.blockingMode, privacy_mode: options.privacyMode, consent_mode: options.consentMode,
         browser: 'chromium', browser_version: browserVersion,
         metadata: metadata(browserVersion, options),
     });
@@ -104,17 +105,20 @@ function parseArgs(args) {
     if (!Number.isInteger(observationMs) || observationMs < 0 || observationMs > 60000) throw new Error('observation-ms must be an integer from 0 to 60000');
     const blockingMode = value('--blocking-mode=', 'none');
     if (!['none', 'controlled'].includes(blockingMode)) throw new Error('blocking mode must be none or controlled');
-    return { trackingMode, blockingMode, observationMs, headed: args.includes('--headed'), productSlug: value('--product-slug=', 'testbed-wireless-headphones'), batchId: value('--batch-id=', null), conditionLabel: value('--condition-label=', null), replication: value('--replication=', null), schedulePosition: value('--schedule-position=', null), collectionRole: value('--collection-role=', null) };
+    const privacyMode = value('--privacy-mode=', 'standard'); if (!['standard','javascript_disabled'].includes(privacyMode)) throw new Error('privacy-mode must be standard or javascript_disabled');
+    const consentMode = value('--consent-mode=', 'full'); if (!['full','partial','none'].includes(consentMode)) throw new Error('consent-mode must be full, partial, or none');
+    return { trackingMode, blockingMode, observationMs, privacyMode, consentMode, headed: args.includes('--headed'), productSlug: value('--product-slug=', 'testbed-wireless-headphones'), batchId: value('--batch-id=', null), conditionLabel: value('--condition-label=', null), replication: value('--replication=', null), schedulePosition: value('--schedule-position=', null), collectionRole: value('--collection-role=', null), experimentFamily: value('--experiment-family=', null) };
 }
 
 function metadata(browserVersion, options) {
     return {
         playwright_version: playwrightVersion, node_version: process.version, platform: process.platform,
         architecture: process.arch, headed: options.headed, observation_window_ms: options.observationMs,
-        product_slug: options.productSlug, privacy_mode: 'standard', consent_mode: 'full',
+        product_slug: options.productSlug, privacy_mode: options.privacyMode, consent_mode: options.consentMode, consent_profile: consentProfile(options.consentMode), javascript_enabled: options.privacyMode !== 'javascript_disabled',
         service_workers: 'block', routing_enabled: true,
         routing_policy: 'controlled-ga4-routing-v1', git_commit: git('rev-parse', 'HEAD'), git_dirty: git('status', '--porcelain') !== '',
         collection_batch_id: options.batchId, collection_role: options.collectionRole, condition_label: options.conditionLabel,
+        experiment_family: options.experimentFamily,
         replication_index: options.replication === null ? null : Number(options.replication), schedule_position: options.schedulePosition === null ? null : Number(options.schedulePosition),
         base_url: baseUrl, runner_version: '1.0.0', chromium_version: browserVersion,
     };
@@ -128,10 +132,11 @@ function summarize(run, browserVersion, events, observations, artifactDirectory,
     const count = (provider, layer, kind) => observations.filter((item) => item.provider === provider && item.layer === layer && item.resource_kind === kind).length;
     return {
         run_id: run.run_id, status: run.status, browser: `chromium ${browserVersion}`, tracking_mode: options.trackingMode,
-        blocking_mode: options.blockingMode, privacy_mode: 'standard', consent_mode: 'full', service_workers: 'block', routing_enabled: true,
+        blocking_mode: options.blockingMode, privacy_mode: options.privacyMode, consent_mode: options.consentMode, javascript_enabled: options.privacyMode !== 'javascript_disabled', service_workers: 'block', routing_enabled: true,
         ground_truth_event_count: events.length, ground_truth_event_names: events.map((event) => event.event_name), ga4_js_invocation_count: count('ga4', 'js_invocation', 'event_transport'),
         meta_js_invocation_count: count('meta', 'js_invocation', 'event_transport'),
         ga4_network_event_request_count: count('ga4', 'network', 'event_transport'),
+        ga4_loader_finished_count: observations.filter((item) => item.provider === 'ga4' && item.resource_kind === 'script' && item.outcome === 'finished').length,
         ga4_controlled_block_count: observations.filter((item) => item.provider === 'ga4' && item.outcome === 'blocked_by_client').length,
         ga4_loader_block_count: observations.filter((item) => item.provider === 'ga4' && item.resource_kind === 'script' && item.outcome === 'blocked_by_client').length,
         ga4_event_transport_block_count: observations.filter((item) => item.provider === 'ga4' && item.resource_kind === 'event_transport' && item.outcome === 'blocked_by_client').length,

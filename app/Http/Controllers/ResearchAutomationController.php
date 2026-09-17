@@ -38,8 +38,8 @@ class ResearchAutomationController extends Controller
         $attributes = Validator::make($request->all(), [
             'tracking_mode' => ['required', Rule::in(['client_only', 'server_augmented'])],
             'blocking_mode' => ['required', Rule::in(['none', 'controlled'])],
-            'privacy_mode' => ['required', Rule::in(['standard'])],
-            'consent_mode' => ['required', Rule::in(['full'])],
+            'privacy_mode' => ['required', Rule::in(['standard', 'javascript_disabled'])],
+            'consent_mode' => ['required', Rule::in(['full', 'partial', 'none'])],
             'browser' => ['required', 'string', 'max:255'],
             'browser_version' => ['required', 'string', 'max:255'],
             'metadata' => ['nullable', 'array'],

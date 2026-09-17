@@ -7,6 +7,7 @@
 /storage/*.key
 /storage/pail
 /storage/app/research/playwright
+/storage/app/research/collections
 /vendor
 .env
 .env.backup

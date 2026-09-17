@@ -1,4 +1,4 @@
-function initialiseGa4({ measurement_id: measurementId }) {
+function initialiseGa4({ measurement_id: measurementId, consent }) {
     if (!measurementId || window.__testbedGa4Initialised) {
         return;
     }
@@ -6,6 +6,7 @@ function initialiseGa4({ measurement_id: measurementId }) {
     window.__testbedGa4Initialised = true;
     window.dataLayer = window.dataLayer || [];
     window.gtag = window.gtag || function gtag() { window.dataLayer.push(arguments); };
+    window.gtag('consent', 'default', consent);
     window.gtag('js', new Date());
     // The testbed controls only canonical ecommerce events: never page_view.
     window.gtag('config', measurementId, { send_page_view: false });

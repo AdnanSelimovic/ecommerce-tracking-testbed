@@ -9,6 +9,8 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Services\ExperimentRunContext;
 use App\Tracking\ClientTrackingEligibility;
+use App\Tracking\Ga4ConsentProfile;
+use App\Tracking\ServerTrackingEligibility;
 use App\Tracking\ClientTrackingPayloadFactory;
 use App\Tracking\Ga4ClientEventMapper;
 use App\Tracking\MetaClientEventMapper;
@@ -18,6 +20,18 @@ use Tests\TestCase;
 class ClientTrackingTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_consent_profiles_are_exact_and_server_eligibility_remains_full_only(): void
+    {
+        $this->assertSame(['analytics_storage'=>'granted','ad_storage'=>'granted','ad_user_data'=>'granted','ad_personalization'=>'granted'], Ga4ConsentProfile::for('full'));
+        $this->assertSame(['analytics_storage'=>'granted','ad_storage'=>'denied','ad_user_data'=>'denied','ad_personalization'=>'denied'], Ga4ConsentProfile::for('partial'));
+        $this->assertSame(['analytics_storage'=>'denied','ad_storage'=>'denied','ad_user_data'=>'denied','ad_personalization'=>'denied'], Ga4ConsentProfile::for('none'));
+        $full = ExperimentRun::create(['tracking_mode'=>'server_augmented', 'consent_mode'=>'full']);
+        $partial = ExperimentRun::create(['tracking_mode'=>'server_augmented', 'consent_mode'=>'partial']);
+        $eligibility = app(ServerTrackingEligibility::class);
+        $this->assertTrue($eligibility->allows(GroundTruthEvent::create(['experiment_run_id'=>$full->id, 'event_name'=>GroundTruthEventName::ViewItem])));
+        $this->assertFalse($eligibility->allows(GroundTruthEvent::create(['experiment_run_id'=>$partial->id, 'event_name'=>GroundTruthEventName::ViewItem])));
+    }
 
     private function enableProviders(): void
     {
@@ -123,7 +137,7 @@ class ClientTrackingTest extends TestCase
 
         $this->assertTrue($eligibility->allowsRun($clientOnly));
         $this->assertTrue($eligibility->allowsRun($serverAugmented));
-        $this->assertFalse($eligibility->allowsRun($partial));
+        $this->assertTrue($eligibility->allowsRun($partial));
         $this->assertFalse($eligibility->allowsRun($none));
         $this->assertFalse($eligibility->allowsRun($missing));
     }
@@ -136,7 +150,7 @@ class ClientTrackingTest extends TestCase
         $this->get(route('products.show', $product))->assertDontSee('testbedClientTracking');
 
         $this->bindHistoricalConsentRun('partial');
-        $this->get(route('products.show', $product))->assertDontSee('testbedClientTracking');
+        $this->get(route('products.show', $product))->assertSee('testbedClientTracking');
 
         $this->post(route('research.context.clear'));
         $this->bindHistoricalConsentRun('none');

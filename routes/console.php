@@ -114,3 +114,7 @@ Artisan::command('research:verify-final-server-run {runId}', function (string $r
     $this->line(json_encode(['run_id'=>$runId, 'expected_dispatches'=>$expected, 'dispatch_count'=>$dispatches->count(), 'endpoint_accepted_count'=>$accepted, 'valid'=>$valid]));
     return $valid ? self::SUCCESS : self::FAILURE;
 })->purpose('Verify persisted GA4 server dispatch evidence for one final run');
+
+Artisan::command('research:export-privacy-consent {batchId}', function (string $batchId, \App\Research\PrivacyConsentExporter $exporter): int {
+    $report = $exporter->export($batchId); $this->line(json_encode($report)); return $report['valid'] ? self::SUCCESS : self::FAILURE;
+})->purpose('Export one Experiment 2 privacy/consent collection from persisted evidence');
