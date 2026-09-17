@@ -14,6 +14,16 @@
         <p class="muted">This milestone dispatches only canonical ecommerce events. It does not claim that either platform received them.</p>
     </div>
 
+    <h2>Server tracking readiness</h2>
+    <div class="card">
+        <p>GA4 Measurement Protocol: <strong>{{ $ga4ServerConfigured ? 'configured' : 'disabled' }}</strong> @if($ga4ServerConfigured) (target: {{ config('tracking.ga4.server_measurement_id') }}) @endif</p>
+        @if($ga4ServerSameStream)<p class="errors">Warning: GA4 server and client measurement IDs are identical. Use separate streams for valid comparison.</p>@endif
+        <p>Meta CAPI: <strong>{{ $metaCapiConfigured ? 'configured' : 'disabled' }}</strong> (Graph {{ config('tracking.meta.graph_api_version') }}; token {{ filled(config('tracking.meta.capi_access_token')) ? 'configured' : 'missing' }})</p>
+    </div>
+
+    <h2>Recent server dispatches</h2>
+    <div class="card"><table><thead><tr><th>event</th><th>run</th><th>provider</th><th>status</th><th>attempts</th><th>HTTP</th><th>queued</th></tr></thead><tbody>@forelse($dispatches as $dispatch)<tr><td><code>{{ $dispatch->groundTruthEvent?->event_id }}</code></td><td>{{ $dispatch->experimentRun?->run_id }}</td><td>{{ $dispatch->provider }}</td><td>{{ $dispatch->status->value }}</td><td>{{ $dispatch->attempt_count }}</td><td>{{ $dispatch->last_http_status ?? '—' }}</td><td>{{ $dispatch->queued_at->toDateTimeString() }}</td></tr>@empty<tr><td colspan="7" class="muted">No server dispatches yet.</td></tr>@endforelse</tbody></table></div>
+
     <h2>Current browser-session run</h2>
     <div class="card">
         @if ($currentRun)

@@ -6,7 +6,7 @@ use App\Http\Requests\AddToCartRequest;
 use App\Models\Product;
 use App\Services\Cart;
 use App\Services\GroundTruthRecorder;
-use App\Tracking\ClientTrackingDelivery;
+use App\Tracking\TrackingCoordinator;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 
@@ -20,14 +20,14 @@ class CartController extends Controller
         ]);
     }
 
-    public function store(AddToCartRequest $request, Cart $cart, GroundTruthRecorder $recorder, ClientTrackingDelivery $tracking): RedirectResponse
+    public function store(AddToCartRequest $request, Cart $cart, GroundTruthRecorder $recorder, TrackingCoordinator $tracking): RedirectResponse
     {
         $product = Product::active()->findOrFail($request->validated()['product_id']);
         $quantity = $request->quantity();
 
         $cart->add($product, $quantity);
 
-        $tracking->queueIfEligible($recorder->addToCart($product, $quantity));
+        $tracking->handle($recorder->addToCart($product, $quantity));
 
         return redirect()
             ->route('cart.index')

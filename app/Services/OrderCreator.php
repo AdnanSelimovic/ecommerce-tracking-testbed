@@ -8,14 +8,14 @@ use App\Support\CartLine;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Models\GroundTruthEvent;
-use App\Tracking\ClientTrackingDelivery;
+use App\Tracking\TrackingCoordinator;
 use RuntimeException;
 
 class OrderCreator
 {
     public function __construct(
         private readonly GroundTruthRecorder $recorder,
-        private readonly ClientTrackingDelivery $tracking,
+        private readonly TrackingCoordinator $tracking,
     )
     {
     }
@@ -60,7 +60,7 @@ class OrderCreator
         });
 
         /** @var GroundTruthEvent $purchaseEvent */
-        $this->tracking->queueIfEligible($purchaseEvent);
+        $this->tracking->handle($purchaseEvent);
 
         return $order;
     }

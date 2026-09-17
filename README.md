@@ -241,10 +241,28 @@ Run `npm run dev` or `npm run build` after configuring identifiers. The local
 
 ## Roadmap
 
-1. Server-augmented GA4 Measurement Protocol and Meta Conversions API delivery
-2. Playwright automation of controlled sessions and conditions
-3. Blocking, privacy, and consent scenarios
-4. Experimental dataset generation and analysis
+1. Playwright automation of controlled sessions and conditions
+2. Blocking, privacy, and consent scenarios
+3. Experimental dataset generation and analysis
+
+## Server-augmented tracking
+
+For `server_augmented` and full-consent runs, Laravel creates durable GA4 MP and
+Meta CAPI dispatch records and queues delivery on `tracking`. Calls never delay
+or roll back ecommerce ground truth. Configure `GA4_SERVER_MEASUREMENT_ID` and
+`GA4_SERVER_API_SECRET` for a **separate** GA4 web stream from
+`GA4_MEASUREMENT_ID`; configure `META_CAPI_ACCESS_TOKEN` with the same
+`META_PIXEL_ID` used by the browser Pixel. The configurable Meta default is
+Graph API `v26.0`.
+
+```bash
+php artisan queue:work --queue=tracking,default
+php artisan tracking:validate-ga4-server <ground-truth-event-uuid>
+```
+
+The validation command uses Google’s debug endpoint and does not change real
+dispatch evidence. Server events retain the original UUID and occurrence time;
+`endpoint_accepted` is endpoint evidence, never platform observation.
 
 ---
 

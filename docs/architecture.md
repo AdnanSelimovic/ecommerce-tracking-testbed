@@ -80,3 +80,21 @@ The project now distinguishes: **ground truth** (Laravel persisted the action),
 **browser dispatch attempt** (one eligible rendered `gtag`/`fbq` invocation),
 and **platform observation** (future evidence that GA4 or Meta received it).
 Milestone 3 records no platform observation and sends no server-side tracking.
+
+## Milestone 4: queued server augmentation
+
+```text
+GroundTruthEvent → TrackingCoordinator → client path + durable server dispatch
+                                                    ↓
+                                          tracking queue worker
+                                            ↙              ↘
+                              GA4 Measurement Protocol     Meta CAPI
+                              separate GA4 stream          shared Pixel/event ID
+```
+
+Each server dispatch is unique per ground-truth event and provider, with durable
+attempt history. Retries retain the original UUID and occurrence timestamp;
+they cannot alter ecommerce ground truth. `endpoint_accepted` is transport/API
+evidence only, never proof of platform reporting observation. GA4 server events
+use a distinct stream and deterministic run-derived client ID; Meta reuses the
+browser event identity for future deduplication.

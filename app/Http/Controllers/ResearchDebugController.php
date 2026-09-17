@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ExperimentRun;
 use App\Models\GroundTruthEvent;
+use App\Models\ServerTrackingDispatch;
 use App\Services\ExperimentRunContext;
 use App\Services\ExperimentRunManager;
 use App\Tracking\ClientTrackingEligibility;
@@ -26,6 +27,10 @@ class ResearchDebugController extends Controller
             'clientTrackingEligible' => $tracking->allowsRun($currentRun),
             'ga4Configured' => (bool) config('tracking.ga4.enabled'),
             'metaConfigured' => (bool) config('tracking.meta.enabled'),
+            'ga4ServerConfigured' => (bool) config('tracking.ga4.server_enabled'),
+            'metaCapiConfigured' => (bool) config('tracking.meta.capi_enabled'),
+            'ga4ServerSameStream' => filled(config('tracking.ga4.server_measurement_id')) && config('tracking.ga4.server_measurement_id') === config('tracking.ga4.measurement_id'),
+            'dispatches' => ServerTrackingDispatch::with('groundTruthEvent.experimentRun')->latest('id')->limit(20)->get(),
             'selectedRun' => $selectedRun,
             'runs' => ExperimentRun::withCount('groundTruthEvents')->latest('id')->limit(20)->get(),
             'events' => GroundTruthEvent::with(['experimentRun', 'product', 'order'])
