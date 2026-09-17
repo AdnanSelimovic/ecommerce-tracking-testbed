@@ -104,7 +104,7 @@ function parseArgs(args) {
     if (!Number.isInteger(observationMs) || observationMs < 0 || observationMs > 60000) throw new Error('observation-ms must be an integer from 0 to 60000');
     const blockingMode = value('--blocking-mode=', 'none');
     if (!['none', 'controlled'].includes(blockingMode)) throw new Error('blocking mode must be none or controlled');
-    return { trackingMode, blockingMode, observationMs, headed: args.includes('--headed'), productSlug: value('--product-slug=', 'testbed-wireless-headphones') };
+    return { trackingMode, blockingMode, observationMs, headed: args.includes('--headed'), productSlug: value('--product-slug=', 'testbed-wireless-headphones'), batchId: value('--batch-id=', null), conditionLabel: value('--condition-label=', null), replication: value('--replication=', null), schedulePosition: value('--schedule-position=', null), collectionRole: value('--collection-role=', null) };
 }
 
 function metadata(browserVersion, options) {
@@ -114,6 +114,8 @@ function metadata(browserVersion, options) {
         product_slug: options.productSlug, privacy_mode: 'standard', consent_mode: 'full',
         service_workers: 'block', routing_enabled: true,
         routing_policy: 'controlled-ga4-routing-v1', git_commit: git('rev-parse', 'HEAD'), git_dirty: git('status', '--porcelain') !== '',
+        collection_batch_id: options.batchId, collection_role: options.collectionRole, condition_label: options.conditionLabel,
+        replication_index: options.replication === null ? null : Number(options.replication), schedule_position: options.schedulePosition === null ? null : Number(options.schedulePosition),
         base_url: baseUrl, runner_version: '1.0.0', chromium_version: browserVersion,
     };
 }
@@ -127,7 +129,7 @@ function summarize(run, browserVersion, events, observations, artifactDirectory,
     return {
         run_id: run.run_id, status: run.status, browser: `chromium ${browserVersion}`, tracking_mode: options.trackingMode,
         blocking_mode: options.blockingMode, privacy_mode: 'standard', consent_mode: 'full', service_workers: 'block', routing_enabled: true,
-        ground_truth_event_count: events.length, ga4_js_invocation_count: count('ga4', 'js_invocation', 'event_transport'),
+        ground_truth_event_count: events.length, ground_truth_event_names: events.map((event) => event.event_name), ga4_js_invocation_count: count('ga4', 'js_invocation', 'event_transport'),
         meta_js_invocation_count: count('meta', 'js_invocation', 'event_transport'),
         ga4_network_event_request_count: count('ga4', 'network', 'event_transport'),
         ga4_controlled_block_count: observations.filter((item) => item.provider === 'ga4' && item.outcome === 'blocked_by_client').length,

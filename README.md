@@ -178,6 +178,31 @@ normal browser failure. Application-side GA4 dispatch invocation does not mean
 the Google library loaded or processed an event, and browser transport evidence
 does not mean GA4 reporting observed it.
 
+### Final collection and export
+
+The final dataset is ten repetitions per condition (40 sequential runs, 160
+expected ground-truth events). It uses the deterministic counterbalanced round
+order `A B C D`, `B C D A`, `C D A B`, `D A B C`, repeated through ten rounds.
+Inspect the plan without creating runs or sending requests:
+
+```bash
+npm run experiment:collect -- --batch-id=final-YYYY-MM-DD --dry-run
+```
+
+After committing the tooling and ensuring a clean working tree, run with
+`--execute`. The manifest freezes settings and revision, atomically records
+each slot, runs the one-shot tracking queue worker after B/D, and stops on an
+invalid result. Resume only planned slots on the same revision, then export:
+
+```bash
+npm run experiment:collect -- --resume=final-YYYY-MM-DD --execute
+php artisan research:export-experiment final-YYYY-MM-DD
+```
+
+Exports at `storage/app/research/collections/<batch>/export/` include runs,
+events, a dataset, validation report, and evidence-layer summary. GA4 endpoint
+acceptance is never described as GA4 reporting or platform receipt.
+
 ## Current ecommerce flow
 
 | Step | Route | Ground-truth event |

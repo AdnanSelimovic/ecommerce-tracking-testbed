@@ -5,6 +5,7 @@
         "dev": "vite",
         "build": "vite build",
         "experiment:baseline": "node experiment-runner/run-baseline.js",
+        "experiment:collect": "node experiment-runner/collect-experiment.js",
         "test:experiment-runner": "node --test experiment-runner/**/*.test.js"
     },
     "devDependencies": {

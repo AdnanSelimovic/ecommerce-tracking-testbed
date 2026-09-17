@@ -138,6 +138,19 @@ and observation window. A controlled block does not fail the ecommerce flow;
 it is expected client-layer evidence. No repetitions, statistics, Meta, consent,
 privacy-profile, or real-ad-blocker work belongs to this implementation step.
 
+## Final collection and export
+
+The final collector invokes the existing single-run runner sequentially and
+records a 40-position deterministic counterbalanced A/B/C/D schedule in an
+atomically updated batch manifest. It freezes the Git revision and final
+Chromium/headless/10-second/standard/full configuration. Failures remain in
+the manifest and stop the batch; resume does not silently rerun completed or
+failed slots. The Laravel exporter filters only the matching collection batch
+metadata and creates evidence-level CSV/JSON/Markdown outputs. It marks a
+batch valid only after checking run counts, fixed conditions, canonical events,
+blocking evidence, and expected server endpoint evidence. Endpoint acceptance
+is API transport evidence, not GA4 reporting observation.
+
 ## Milestone 4: queued server augmentation
 
 ```text
