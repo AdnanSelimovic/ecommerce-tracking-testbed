@@ -13,6 +13,7 @@ function initialiseGa4({ measurement_id: measurementId }) {
     const script = document.createElement('script');
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
+    observeProviderLoader('ga4', script);
     document.head.appendChild(script);
 }
 
@@ -37,7 +38,21 @@ function initialiseMeta({ pixel_id: pixelId }) {
     const script = document.createElement('script');
     script.async = true;
     script.src = 'https://connect.facebook.net/en_US/fbevents.js';
+    observeProviderLoader('meta', script);
     document.head.appendChild(script);
+}
+
+function observeProviderLoader(provider, script) {
+    script.addEventListener('load', () => {
+        window.dispatchEvent(new CustomEvent('testbed:client-tracking-loader', {
+            detail: { provider, outcome: 'finished', observed_at: new Date().toISOString() },
+        }));
+    });
+    script.addEventListener('error', () => {
+        window.dispatchEvent(new CustomEvent('testbed:client-tracking-loader', {
+            detail: { provider, outcome: 'failed', observed_at: new Date().toISOString() },
+        }));
+    });
 }
 
 function dispatchClientTrackingEvent(event, config) {

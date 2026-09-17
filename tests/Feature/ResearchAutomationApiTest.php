@@ -68,7 +68,12 @@ class ResearchAutomationApiTest extends TestCase
         $run = ExperimentRun::create();
         $event = GroundTruthEvent::create(['experiment_run_id' => $run->id, 'event_name' => GroundTruthEventName::ViewItem]);
         $otherEvent = GroundTruthEvent::create(['experiment_run_id' => ExperimentRun::create()->id, 'event_name' => GroundTruthEventName::Purchase]);
-        $matched = $this->observation(['ground_truth_event_id' => $event->event_id]);
+        $matched = $this->observation([
+            'ground_truth_event_id' => $event->event_id,
+            'outcome' => 'response_received_aborted',
+            'response_status' => 204,
+            'failure_text' => 'net::ERR_ABORTED',
+        ]);
 
         $this->postJson(route('research.automation.runs.observations', $run), ['observations' => [$matched, $matched, $this->observation()]])
             ->assertCreated()->assertJsonPath('inserted', 3);

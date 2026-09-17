@@ -24,7 +24,13 @@ export class NetworkObserver {
     }
 
     finished(request) { this.record(request, 'finished'); }
-    failed(request) { this.record(request, 'failed', request.failure()?.errorText ?? 'Browser transport failure'); }
+
+    failed(request) {
+        const item = this.requests.get(request);
+        const outcome = item?.responseStatus === null ? 'failed' : 'response_received_aborted';
+
+        this.record(request, outcome, request.failure()?.errorText ?? 'Browser transport failure');
+    }
 
     record(request, outcome, failureText = null) {
         const item = this.requests.get(request);

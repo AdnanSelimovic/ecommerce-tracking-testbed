@@ -27,15 +27,20 @@ try {
     context = await browser.newContext(); // A new, non-persistent context is one ExperimentRun.
     await context.exposeBinding('__testbedCaptureClientTracking', (_source, detail) => {
         jsObservations.push({
-            provider: detail.provider, layer: 'js_invocation', resource_kind: 'event_transport',
+            provider: detail.provider, layer: 'js_invocation', resource_kind: detail.resource_kind ?? 'event_transport',
             ground_truth_event_id: detail.ground_truth_event_id, canonical_event_name: detail.canonical_event_name,
-            provider_event_name: detail.provider_event_name, outcome: 'issued', observed_at: detail.observed_at,
+            provider_event_name: detail.provider_event_name, outcome: detail.outcome ?? 'issued', observed_at: detail.observed_at,
             metadata: { page_url: detail.page_url },
         });
     });
     await context.addInitScript(() => {
         window.addEventListener('testbed:client-tracking-dispatch', (event) => {
             window.__testbedCaptureClientTracking({ ...event.detail, page_url: window.location.href });
+        });
+        window.addEventListener('testbed:client-tracking-loader', (event) => {
+            window.__testbedCaptureClientTracking({
+                ...event.detail, page_url: window.location.href, resource_kind: 'script',
+            });
         });
     });
     control = new LaravelControl(context.request, baseUrl);

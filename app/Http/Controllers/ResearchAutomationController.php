@@ -78,7 +78,7 @@ class ResearchAutomationController extends Controller
             'observations.*.resource_kind' => ['required', Rule::in(['script', 'event_transport'])],
             'observations.*.canonical_event_name' => ['nullable', 'string', 'max:100'],
             'observations.*.provider_event_name' => ['nullable', 'string', 'max:100'],
-            'observations.*.outcome' => ['required', Rule::in(['issued', 'finished', 'failed'])],
+            'observations.*.outcome' => ['required', Rule::in(['issued', 'finished', 'failed', 'response_received_aborted'])],
             'observations.*.correlation_method' => ['nullable', Rule::in(['embedded_event_uuid'])],
             'observations.*.request_method' => ['nullable', 'string', 'max:16'],
             'observations.*.request_host' => ['nullable', 'string', 'max:255'],
