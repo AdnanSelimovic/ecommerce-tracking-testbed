@@ -43,11 +43,17 @@ function initialiseMeta({ pixel_id: pixelId }) {
 function dispatchClientTrackingEvent(event, config) {
     if (config.ga4.enabled && config.ga4.measurement_id) {
         initialiseGa4(config.ga4);
+        window.dispatchEvent(new CustomEvent('testbed:client-tracking-dispatch', {
+            detail: { provider: 'ga4', ground_truth_event_id: event.ground_truth_event_id, canonical_event_name: event.event_name, provider_event_name: event.ga4.name, observed_at: new Date().toISOString() },
+        }));
         window.gtag('event', event.ga4.name, event.ga4.params);
     }
 
     if (config.meta.enabled && config.meta.pixel_id) {
         initialiseMeta(config.meta);
+        window.dispatchEvent(new CustomEvent('testbed:client-tracking-dispatch', {
+            detail: { provider: 'meta', ground_truth_event_id: event.ground_truth_event_id, canonical_event_name: event.event_name, provider_event_name: event.meta.name, observed_at: new Date().toISOString() },
+        }));
         window.fbq('track', event.meta.name, event.meta.params, event.meta.options);
     }
 }

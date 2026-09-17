@@ -47,4 +47,18 @@ class ExperimentRunManager
 
         return $run;
     }
+
+    public function fail(ExperimentRun $run, ?string $reason = null): ExperimentRun
+    {
+        if ($reason !== null) {
+            $metadata = $run->metadata ?? [];
+            $metadata['failure_reason'] = str($reason)->limit(500)->toString();
+            $run->forceFill(['metadata' => $metadata])->save();
+        }
+
+        $run = $run->transitionTo(ExperimentRunStatus::Failed);
+        $this->context->clearIfCurrent($run);
+
+        return $run;
+    }
 }

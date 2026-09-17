@@ -57,6 +57,11 @@ class ExperimentRun extends Model
         return $this->hasMany(GroundTruthEvent::class);
     }
 
+    public function browserTrackingObservations(): HasMany
+    {
+        return $this->hasMany(BrowserTrackingObservation::class);
+    }
+
     public function transitionTo(ExperimentRunStatus $next): self
     {
         $current = $this->status;

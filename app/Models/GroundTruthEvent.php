@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\GroundTruthEventName;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 /**
@@ -60,5 +61,10 @@ class GroundTruthEvent extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function browserTrackingObservations(): HasMany
+    {
+        return $this->hasMany(BrowserTrackingObservation::class);
     }
 }

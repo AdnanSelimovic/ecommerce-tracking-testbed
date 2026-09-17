@@ -41,6 +41,6 @@
 
     <form method="POST" action="{{ route('checkout.store') }}">
         @csrf
-        <button type="submit">Place synthetic order</button>
+        <button type="submit" data-testid="place-synthetic-order">Place synthetic order</button>
     </form>
 @endsection

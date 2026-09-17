@@ -5,6 +5,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ResearchDebugController;
+use App\Http\Controllers\ResearchAutomationController;
 use App\Http\Middleware\RestrictResearchControlToLocal;
 use Illuminate\Support\Facades\Route;
 
@@ -26,4 +27,14 @@ Route::middleware(RestrictResearchControlToLocal::class)->prefix('research')->gr
     Route::post('/runs', [ResearchDebugController::class, 'start'])->name('research.runs.start');
     Route::post('/runs/{run}/finish', [ResearchDebugController::class, 'finish'])->name('research.runs.finish');
     Route::post('/context/clear', [ResearchDebugController::class, 'clear'])->name('research.context.clear');
+
+    Route::prefix('automation')->name('research.automation.')->group(function (): void {
+        Route::get('/bootstrap', [ResearchAutomationController::class, 'bootstrap'])->name('bootstrap');
+        Route::post('/runs', [ResearchAutomationController::class, 'create'])->name('runs.create');
+        Route::get('/runs/{run}', [ResearchAutomationController::class, 'show'])->name('runs.show');
+        Route::get('/runs/{run}/events', [ResearchAutomationController::class, 'events'])->name('runs.events');
+        Route::post('/runs/{run}/observations', [ResearchAutomationController::class, 'observations'])->name('runs.observations');
+        Route::post('/runs/{run}/complete', [ResearchAutomationController::class, 'complete'])->name('runs.complete');
+        Route::post('/runs/{run}/fail', [ResearchAutomationController::class, 'fail'])->name('runs.fail');
+    });
 });

@@ -46,6 +46,6 @@
             </table>
         </div>
 
-        <a class="btn" href="{{ route('checkout.show') }}">Proceed to checkout</a>
+        <a class="btn" href="{{ route('checkout.show') }}" data-testid="proceed-to-checkout">Proceed to checkout</a>
     @endif
 @endsection

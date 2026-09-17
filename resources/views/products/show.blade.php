@@ -11,12 +11,12 @@
         <p class="price">{{ \App\Support\Money::format($product->price_minor) }}</p>
         <p>{{ $product->description }}</p>
 
-        <form method="POST" action="{{ route('cart.store') }}">
+        <form method="POST" action="{{ route('cart.store') }}" data-testid="add-to-cart-form">
             @csrf
             <input type="hidden" name="product_id" value="{{ $product->id }}">
             <label for="quantity" class="muted">Quantity</label>
             <input id="quantity" type="number" name="quantity" value="1" min="1" max="10">
-            <button type="submit">Add to cart</button>
+            <button type="submit" data-testid="add-to-cart">Add to cart</button>
         </form>
     </div>
 

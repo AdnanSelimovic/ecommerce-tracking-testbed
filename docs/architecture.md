@@ -81,6 +81,42 @@ The project now distinguishes: **ground truth** (Laravel persisted the action),
 and **platform observation** (future evidence that GA4 or Meta received it).
 Milestone 3 records no platform observation and sends no server-side tracking.
 
+## Milestone 5: browser observation baseline
+
+One fresh, non-persistent Playwright Chromium BrowserContext maps to exactly
+one `ExperimentRun`. Its `context.request` API shares that Laravel session to
+bootstrap CSRF, create/bind the run, poll ground truth, ingest evidence, then
+complete or fail it. The local/testing-only `/research/automation/*` surface
+remains behind `RestrictResearchControlToLocal`; CSRF is not disabled globally.
+
+```text
+Laravel action → GroundTruthEvent
+browser dispatcher → CustomEvent → JS invocation observation
+browser request lifecycle → passive network observation
+server dispatch endpoint acceptance → server-delivery evidence
+platform UI/reporting → platform observation (not yet implemented)
+```
+
+These are intentionally distinct claims: ground truth proves the application
+recorded an action; JS evidence proves testbed code invoked a provider API;
+network evidence proves the browser saw a request lifecycle; endpoint acceptance
+proves only an endpoint response. None alone proves GA4 or Meta reporting.
+
+The runner uses an init-script listener for the browser-only
+`testbed:client-tracking-dispatch` event; it does not patch `gtag` or `fbq`.
+It uses only passive `request`, `response`, `requestfinished`, and
+`requestfailed` events—no interception or blocking. A centralized classifier
+separates GA4/Meta loader scripts from event transport candidates. Event UUIDs
+are correlated only by exact URL or POST evidence; unmatched and duplicates
+remain observations. Persistent rows retain method, host, path and a SHA-256
+fingerprint, never a full third-party query string.
+
+After each storefront action, the runner bounded-polls expected ground truth
+and waits a configurable fixed observation window (3000ms by default), never
+`networkidle`. Missing ground truth fails the run; absent tracker traffic is a
+result. `browser_tracking_observations` distinguishes `js_invocation` from
+`network`, and `script` from `event_transport`, while allowing duplicates.
+
 ## Milestone 4: queued server augmentation
 
 ```text

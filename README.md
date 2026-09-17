@@ -114,6 +114,41 @@ environment at a separate MySQL schema instead.
 
 ---
 
+### Playwright baseline runner (Milestone 5)
+
+The locked baseline uses Playwright **1.63.0** and Chromium **153.0.8010.12**.
+Install the exact Node dependency and its Chromium binary on each research
+machine:
+
+```bash
+npm ci
+npx playwright install chromium
+```
+
+With the local WAMP site and seeded catalogue available, execute one fresh,
+non-persistent Chromium context per run:
+
+```bash
+npm run experiment:baseline -- --tracking-mode=client_only --observation-ms=3000
+npm run experiment:baseline -- --tracking-mode=server_augmented --observation-ms=3000
+```
+
+`--headed` displays Chromium and `--product-slug=testbed-mechanical-keyboard`
+selects another deterministic seeded product. `EXPERIMENT_BASE_URL` overrides
+the default `http://ecommerce-tracking.test`. Server-augmented runs do not
+start workers; run one separately if dispatch delivery is being studied:
+
+```bash
+php artisan queue:work --queue=tracking,default
+```
+
+Each run stores `trace.zip`, `browser-observations.json`, and `run-summary.json`
+under `storage/app/research/playwright/<run-id>/`; a failed run also writes
+`failure.png`. These artifacts are git-ignored. Inspect a trace with
+`npx playwright show-trace storage/app/research/playwright/<run-id>/trace.zip`.
+Traces and artifacts can contain detailed browser and network evidence, so
+review them before external publication.
+
 ## Current ecommerce flow
 
 | Step | Route | Ground-truth event |
@@ -241,9 +276,8 @@ Run `npm run dev` or `npm run build` after configuring identifiers. The local
 
 ## Roadmap
 
-1. Playwright automation of controlled sessions and conditions
-2. Blocking, privacy, and consent scenarios
-3. Experimental dataset generation and analysis
+1. Blocking, privacy, and consent scenarios
+2. Experimental dataset generation and analysis
 
 ## Server-augmented tracking
 

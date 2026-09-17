@@ -3,9 +3,12 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build"
+        "build": "vite build",
+        "experiment:baseline": "node experiment-runner/run-baseline.js",
+        "test:experiment-runner": "node --test experiment-runner/**/*.test.js"
     },
     "devDependencies": {
+        "@playwright/test": "1.63.0",
         "laravel-vite-plugin": "^1.2",
         "vite": "^6.0"
     }
